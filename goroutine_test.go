@@ -167,6 +167,7 @@ func TestChannelReadAndWrite(t *testing.T) {
 	}
 }
 
+
 //defer在panic||return以后声明,不会触发这个钩子
 //注意defer的声明顺序
 func TestPanic(t *testing.T) {
