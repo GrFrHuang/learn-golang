@@ -328,3 +328,49 @@ func TestSystemSignal(t *testing.T) {
 	close(chConsume)
 	wg.Wait()
 }
+
+// 函数形参直接声明为结构体或接口
+func Structs(s struct {
+	Sex string
+}) {
+	fmt.Println(s.Sex)
+}
+
+func TestStructs(t *testing.T) {
+	type Sexs struct {
+		Sex string
+	}
+	s := Sexs{Sex: "男"}
+	Structs(s)
+}
+
+//golang使用接口来实现多态性
+//可以将子接口类型的变量赋值给父接口类型的变量
+type Human interface {
+	getInfo()
+}
+
+type Huang struct {
+	Name string
+}
+
+type Bai struct {
+	Age int
+}
+
+func (H Huang) getInfo() {
+	fmt.Println(H.Name)
+}
+
+func (H Bai) getInfo() {
+	fmt.Println(H.Age)
+}
+
+func TestRedis(t *testing.T) {
+	var human Human
+	human = Huang{Name: "Hello GrFrHuang"}
+	human.getInfo()
+	human = Bai{Age: 24}
+	human.getInfo()
+}
+
