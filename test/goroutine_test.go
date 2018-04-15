@@ -1,4 +1,4 @@
-package models
+package test
 
 import (
 	"testing"
@@ -166,7 +166,6 @@ func TestChannelReadAndWrite(t *testing.T) {
 		fmt.Println(val, isClose)
 	}
 }
-
 
 //defer在panic||return以后声明,不会触发这个钩子
 //注意defer的声明顺序
@@ -374,3 +373,25 @@ func TestRedis(t *testing.T) {
 	human.getInfo()
 }
 
+// golang组合继承
+type As struct {
+	Name string
+}
+
+func (a *As) GetName() string {
+	return "hello" + a.Name
+}
+
+type Ha struct {
+	As
+	Age  int
+	Name string
+}
+
+//func (h *Ha) GetName() int {
+//	return h.Age
+//}
+func TestCount(t *testing.T) {
+	h := Ha{Age: 23, Name: "huang"}
+	fmt.Println(h.GetName())
+}
