@@ -20,10 +20,12 @@ func main() {
 	pool.AppendCertsFromPEM(caCrt)
 
 	tr := &http.Transport{
-		TLSClientConfig: &tls.Config{RootCAs: pool},
+		TLSClientConfig: &tls.Config{RootCAs: pool, MinVersion: tls.VersionTLS12},
 	}
+	req, _ := http.NewRequest("GET", "https://test.aobosdk.com:8099/v1/announcementList?game_id=2", nil)
+	req.Header.Add("GameKey", "123123")
 	client := &http.Client{Transport: tr}
-	resp, err := client.Get("https://www.bloghuang.com:8088")
+	resp, err := client.Do(req)
 	if err != nil {
 		fmt.Println("Get error:", err)
 		return

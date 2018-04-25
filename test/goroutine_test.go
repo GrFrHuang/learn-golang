@@ -9,7 +9,6 @@ import (
 	"strings"
 	//"runtime"
 	"time"
-	"github.com/skip2/go-qrcode"
 	"reflect"
 	"os/signal"
 	"syscall"
@@ -95,13 +94,13 @@ func TestIoutil(t *testing.T) {
 	fmt.Println(l, len(l), err)
 }
 
-func TestQRcode(t *testing.T) {
-	//err := qrcode.WriteFile("http://blog.csdn.net/wangshubo1989", qrcode.Medium, 256, "qr.png")
-	err := qrcode.WriteFile("weixin：//wxpay/s/An4baqw", qrcode.Medium, 256, "../static/qr.png")
-	if err != nil {
-		fmt.Println("write error")
-	}
-}
+//func TestQRcode(t *testing.T) {
+//	//err := qrcode.WriteFile("http://blog.csdn.net/wangshubo1989", qrcode.Medium, 256, "qr.png")
+//	err := qrcode.WriteFile("weixin：//wxpay/s/An4baqw", qrcode.Medium, 256, "../static/qr.png")
+//	if err != nil {
+//		fmt.Println("write error")
+//	}
+//}
 
 type People struct {
 	Name    string `json:"name"`
@@ -385,13 +384,15 @@ func (a *As) GetName() string {
 type Ha struct {
 	As
 	Age  int
-	Name string
+	Name <-chan string
 }
 
 //func (h *Ha) GetName() int {
 //	return h.Age
 //}
 func TestCount(t *testing.T) {
-	h := Ha{Age: 23, Name: "huang"}
-	fmt.Println(h.GetName())
+	c := make(chan string, 1)
+	c <- "2"
+	h := Ha{Age: 24, Name: c}
+	fmt.Printf("%+v", h)
 }
