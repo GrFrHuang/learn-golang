@@ -6,21 +6,20 @@ import (
 	"strings"
 	"net/http"
 	"sync"
+	"runtime"
 	"time"
 )
 
 // Test golang frame work gin erupt simultaneously model
 
 const (
-	MaxWorker = 1000
-	MaxJob    = 10000
+	MaxProcess = 4      // Limit maximum cpu process numbers.
+	MaxWorker  = 10000  // Limit maximum work pool worker numbers.
+	MaxJob     = 100000 // Limit maximum request job numbers.
 )
 
-var wg = &sync.WaitGroup{}
-
-var Dispatchers map[string]map[string]func(ctx *gin.Context)
-
 type Worker struct {
+	rw       *sync.RWMutex
 	quit     chan bool
 	handlers map[string]func(ctx *gin.Context)
 }
@@ -29,18 +28,25 @@ type Dispatcher struct {
 	jobQueue chan *gin.Context
 }
 
+var HandlerCluster map[string]map[string]func(ctx *gin.Context)
+var Dpt *Dispatcher
+var WorkerPool *Worker
+
+func init() {
+	WorkerPool = NewWorkerPool()
+	Dpt = NewDispatcher()
+	HandlerCluster = make(map[string]map[string]func(ctx *gin.Context))
+
+	WorkerPool.RegisterWorker(Dpt, "GET", "/getsome", getsome)
+	WorkerPool.RegisterWorker(Dpt, "POST", "/postsome", Postsome)
+	WorkerPool.RegisterWorker(Dpt, "DELETE", "/deletesome", deletesome)
+}
+
 // New a request ctx(context) dispatcher.
 func NewDispatcher() *Dispatcher {
 	return &Dispatcher{
 		jobQueue: make(chan *gin.Context, MaxJob),
 	}
-}
-
-// Register api and handler to worker pool.
-func (d *Dispatcher) RegisterMethodDispatcher(method, api string, handler func(ctx *gin.Context)) {
-	bean := make(map[string]func(ctx *gin.Context))
-	bean[api] = handler
-	Dispatchers[method] = bean
 }
 
 func (d *Dispatcher) PushContextQueue(ctx *gin.Context) {
@@ -60,6 +66,7 @@ func (d *Dispatcher) GetJonNum() int {
 // New a gin handlers collection.
 func NewWorkerPool() *Worker {
 	return &Worker{
+		rw:       new(sync.RWMutex),
 		quit:     make(chan bool),
 		handlers: make(map[string]func(ctx *gin.Context)),
 	}
@@ -68,17 +75,22 @@ func NewWorkerPool() *Worker {
 // Distribute gin requests to the corresponding deal handler.
 func (w *Worker) Work(ctx *gin.Context) {
 	uri := strings.Split(ctx.Request.RequestURI, "?")[0]
-	m := &sync.Mutex{}
-	m.Lock()
+	//w.rw.RLock()
+	//defer w.rw.RUnlock()
 	if _, ok := w.handlers[uri]; ok {
 		w.handlers[uri](ctx)
+		return
 	}
-	m.Unlock()
 	log.Error("api forget register ?")
 }
 
 // Register api and handler to worker pool.
-func (w *Worker) RegisterWorker(api string, handler func(ctx *gin.Context)) {
+func (w *Worker) RegisterWorker(dispatcher *Dispatcher, method, api string, handler func(ctx *gin.Context)) {
+	// Register api dispatcher func.
+	bean := make(map[string]func(ctx *gin.Context))
+	bean[api] = handler
+	HandlerCluster[method] = bean
+
 	w.handlers[api] = handler
 }
 
@@ -89,8 +101,27 @@ func (w *Worker) Stop() {
 	}()
 }
 
+//// Extend job queue capacity once.
+//func (d *Dispatcher) ExtendQueue() {
+//	go func(dispatcher *Dispatcher) {
+//		for {
+//			log.Info("the length is : ", cap(dispatcher.jobQueue))
+//			if dispatcher.GetJonNum() == MaxJob {
+//				newJobQueue := make(chan *gin.Context, MaxJob*2)
+//				for ctx := range dispatcher.jobQueue {
+//					newJobQueue <- ctx
+//				}
+//				dispatcher.jobQueue = newJobQueue
+//				return
+//			}
+//			time.Sleep(time.Second * 1)
+//		}
+//	}(d)
+//}
+
 func (d *Dispatcher) Run(w *Worker) {
-	for i := 0; i < 20000; i++ {
+	for i := 0; i < MaxWorker; i++ {
+		runtime.Gosched()
 		go func(queue chan *gin.Context, worker *Worker) {
 			for {
 				select {
@@ -108,28 +139,16 @@ func (d *Dispatcher) Run(w *Worker) {
 	}
 }
 
-func Get(ctx *gin.Context) {
-	Dispa.PushContextQueue(ctx)
-}
-
-func Post(ctx *gin.Context) {
-	Dispa.PushContextQueue(ctx)
-}
-
-func Option(ctx *gin.Context) {
-	Dispa.PushContextQueue(ctx)
-}
-
 func getsome(ctx *gin.Context) {
-	time.Sleep(time.Millisecond * 500)
-	ctx.JSON(http.StatusOK, "get say get !")
-	log.Info("get say get !")
+	ctx.JSON(http.StatusOK, "geter say get !")
 }
-func postsome(ctx *gin.Context) {
-	ctx.JSON(http.StatusOK, "post say post !")
+func Postsome(ctx *gin.Context) {
+	time.Sleep(time.Millisecond * 200)
+	ctx.JSON(http.StatusOK, "poster say post !")
+
 }
 func deletesome(ctx *gin.Context) {
-	ctx.JSON(http.StatusOK, "options say options !")
+	ctx.JSON(http.StatusOK, "optioner say options !")
 }
 
 // Distinct listener api real handler.
@@ -143,22 +162,7 @@ func ListenApi(method, api string, handler func(ctx *gin.Context), router *gin.E
 		router.POST(api, handler)
 	case "DELETE":
 		router.DELETE(api, handler)
+	case "OPTIONS":
+		router.DELETE(api, handler)
 	}
-}
-
-var Dispa *Dispatcher
-var WorkerPool *Worker
-
-func init() {
-	WorkerPool = NewWorkerPool()
-	Dispa = NewDispatcher()
-	Dispatchers = make(map[string]map[string]func(ctx *gin.Context))
-
-	Dispa.RegisterMethodDispatcher("GET", "/getsome", Get)
-	Dispa.RegisterMethodDispatcher("POST", "/postsome", Post)
-	Dispa.RegisterMethodDispatcher("DELETE", "/deletesome", deletesome)
-
-	WorkerPool.RegisterWorker("/getsome", getsome)
-	WorkerPool.RegisterWorker("/postsome", postsome)
-	WorkerPool.RegisterWorker("/deletesome", deletesome)
 }

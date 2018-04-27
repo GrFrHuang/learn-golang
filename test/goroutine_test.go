@@ -418,3 +418,15 @@ func TestCount(t *testing.T) {
 // 已经提示很明确了，all goroutines are asleep，所有协程都在睡觉
 // 所以go就认为是死锁了。至少有一个协程要是在干活的
 // 对于死锁的检测非常麻烦，或许go就采用了这种比较简单粗暴的方法。算是一个小bug吧，但是关系不大
+
+// 测试主协程跑完，子协程是否继续异步执行
+func TestAsyncGoroutine(t *testing.T) {
+	fmt.Println("ready return")
+	go func() {
+		time.Sleep(time.Millisecond * 2)
+		f, err := os.Create("test.txt")
+		fmt.Println(f, err)
+	}()
+	time.Sleep(time.Millisecond * 1)
+	fmt.Println("here return")
+}
