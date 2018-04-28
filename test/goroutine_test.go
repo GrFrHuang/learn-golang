@@ -423,10 +423,8 @@ func TestCount(t *testing.T) {
 func TestAsyncGoroutine(t *testing.T) {
 	fmt.Println("ready return")
 	go func() {
-		time.Sleep(time.Millisecond * 2)
 		f, err := os.Create("test.txt")
 		fmt.Println(f, err)
 	}()
-	time.Sleep(time.Millisecond * 1)
 	fmt.Println("here return")
 }

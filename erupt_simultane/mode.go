@@ -6,16 +6,16 @@ import (
 	"strings"
 	"net/http"
 	"sync"
-	"runtime"
 	"time"
+	"strconv"
 )
 
 // Test golang frame work gin erupt simultaneously model
 
 const (
-	MaxProcess = 4      // Limit maximum cpu process numbers.
-	MaxWorker  = 10000  // Limit maximum work pool worker numbers.
-	MaxJob     = 100000 // Limit maximum request job numbers.
+	MaxProcess = 2     // Limit maximum cpu process numbers.
+	MaxWorker  = 1000  // Limit maximum work pool worker numbers.
+	MaxJob     = 10000 // Limit maximum request job numbers.
 )
 
 type Worker struct {
@@ -101,27 +101,8 @@ func (w *Worker) Stop() {
 	}()
 }
 
-//// Extend job queue capacity once.
-//func (d *Dispatcher) ExtendQueue() {
-//	go func(dispatcher *Dispatcher) {
-//		for {
-//			log.Info("the length is : ", cap(dispatcher.jobQueue))
-//			if dispatcher.GetJonNum() == MaxJob {
-//				newJobQueue := make(chan *gin.Context, MaxJob*2)
-//				for ctx := range dispatcher.jobQueue {
-//					newJobQueue <- ctx
-//				}
-//				dispatcher.jobQueue = newJobQueue
-//				return
-//			}
-//			time.Sleep(time.Second * 1)
-//		}
-//	}(d)
-//}
-
 func (d *Dispatcher) Run(w *Worker) {
 	for i := 0; i < MaxWorker; i++ {
-		runtime.Gosched()
 		go func(queue chan *gin.Context, worker *Worker) {
 			for {
 				select {
@@ -144,6 +125,15 @@ func getsome(ctx *gin.Context) {
 }
 func Postsome(ctx *gin.Context) {
 	time.Sleep(time.Millisecond * 200)
+	role := &Role{
+		CpRoleId:   strconv.Itoa(time.Now().Nanosecond()),
+		UserId:     1,
+		GameId:     1,
+		RoleName:   "战士",
+		RoleGrade:  "79",
+		GameRegion: "五行山",
+	}
+	Ol.Beans <- role
 	ctx.JSON(http.StatusOK, "poster say post !")
 
 }
