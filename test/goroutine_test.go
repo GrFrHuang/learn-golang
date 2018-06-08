@@ -9,7 +9,6 @@ import (
 	"strings"
 	//"runtime"
 	"time"
-	"github.com/skip2/go-qrcode"
 	"reflect"
 	"os/signal"
 	"syscall"
@@ -96,13 +95,13 @@ func TestIoutil(t *testing.T) {
 	fmt.Println(l, len(l), err)
 }
 
-func TestQRcode(t *testing.T) {
-	//err := qrcode.WriteFile("http://blog.csdn.net/wangshubo1989", qrcode.Medium, 256, "qr.png")
-	err := qrcode.WriteFile("weixin：//wxpay/s/An4baqw", qrcode.Medium, 256, "../static/qr.png")
-	if err != nil {
-		fmt.Println("write error")
-	}
-}
+//func TestQRcode(t *testing.T) {
+//	//err := qrcode.WriteFile("http://blog.csdn.net/wangshubo1989", qrcode.Medium, 256, "qr.png")
+//	err := qrcode.WriteFile("weixin：//wxpay/s/An4baqw", qrcode.Medium, 256, "../static/qr.png")
+//	if err != nil {
+//		fmt.Println("write error")
+//	}
+//}
 
 type People struct {
 	Name    string `json:"name"`
@@ -386,15 +385,49 @@ func (a *As) GetName() string {
 type Ha struct {
 	As
 	Age  int
-	Name string
+	Name <-chan string
 }
 
-//func (h *Ha) GetName() int {
-//	return h.Age
-//}
+func (h *Ha) GetName() int {
+	return h.Age
+}
 func TestCount(t *testing.T) {
-	h := Ha{Age: 23, Name: "huang"}
-	fmt.Println(h.GetName())
+	c := make(chan string, 1)
+	c <- "2"
+	h := Ha{Age: 24, Name: c}
+	fmt.Printf("%+v", h)
+}
+
+// <-chan read only
+// chan <- write only
+// 使用这样的方法查看channel是否关闭，会将里面的元素取出一个，channel长度减一
+// if _, ok := <- channel; !ok {
+//		log.Warn("channel has been closed")
+//	}
+// 每做一次这样的操作<-channel都会让channel里的值少一个
+
+// 多维map的问题
+// make一个二维 map，结果碰到了nil map
+// m:= make(map[string]map[string]int)
+// m["a"]["b"] = 2
+// 必须这样才行
+// m := make(map[string]map[string]int)
+// m2:= make(map[string]int)
+// m2["b"] = 1
+// m["a"] = m2
+
+// 已经提示很明确了，all goroutines are asleep，所有协程都在睡觉
+// 所以go就认为是死锁了。至少有一个协程要是在干活的
+// 对于死锁的检测非常麻烦，或许go就采用了这种比较简单粗暴的方法。算是一个小bug吧，但是关系不大
+
+// 测试主协程跑完，子协程是否继续异步执行
+func TestAsyncGoroutine(t *testing.T) {
+	fmt.Println("ready return")
+	go func() {
+		f, err := os.Create("test.txt")
+		fmt.Println(f, err)
+	}()
+	fmt.Println("here return")
 }
 
 func TestRand(t *testing.T) {
