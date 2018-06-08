@@ -1,0 +1,17 @@
+syntax = "proto3";
+
+package grpc_file;
+
+message CountReq {
+    int64 start = 1;
+}
+
+message CountRes {
+    int64 num = 1;
+}
+
+service Counter {
+    rpc count (CountReq) returns (stream CountRes);
+}
+
+//protoc --go_out=plugins=grpc:. counter.proto

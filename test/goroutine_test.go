@@ -13,6 +13,7 @@ import (
 	"reflect"
 	"os/signal"
 	"syscall"
+	"math/rand"
 )
 
 var c chan bool
@@ -394,4 +395,10 @@ type Ha struct {
 func TestCount(t *testing.T) {
 	h := Ha{Age: 23, Name: "huang"}
 	fmt.Println(h.GetName())
+}
+
+func TestRand(t *testing.T) {
+	for i := 0; i < 200; i++ {
+		fmt.Println(rand.Intn(999999))
+	}
 }
