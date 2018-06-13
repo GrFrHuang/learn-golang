@@ -12,7 +12,10 @@ import (
 	"reflect"
 	"os/signal"
 	"syscall"
-	"math/rand"
+	"strconv"
+	"net/rpc"
+	"net"
+	"log"
 )
 
 var c chan bool
@@ -430,8 +433,48 @@ func TestAsyncGoroutine(t *testing.T) {
 	fmt.Println("here return")
 }
 
-func TestRand(t *testing.T) {
-	for i := 0; i < 200; i++ {
-		fmt.Println(rand.Intn(999999))
+//RPC test
+type Args struct {
+	A, B int
+}
+
+type Bean int
+
+func (t *Bean) Multiply(args *Args, reply *([]string)) error {
+	*reply = append(*reply, strconv.Itoa(args.B), "GrFrHuang")
+	return nil
+}
+
+func TestRpc(t *testing.T) {
+	newServer := rpc.NewServer()
+	newServer.Register(new(Bean))
+
+	lst, e := net.Listen("tcp", "127.0.0.1:1234") // any available address
+	if e != nil {
+		log.Fatalf("net.Listen tcp :0: %v", e)
 	}
+
+	//Listen tcp port for rpc request.
+	go newServer.Accept(lst)
+	//newServer.HandleHTTP("/foo", "/bar")
+
+	time.Sleep(5 * time.Second)
+
+	address, err := net.ResolveTCPAddr("tcp", "127.0.0.1:1234")
+	if err != nil {
+		panic(err)
+	}
+	conn, _ := net.DialTCP("tcp", nil, address)
+	defer conn.Close()
+
+	client := rpc.NewClient(conn)
+	defer client.Close()
+
+	args := &Args{7, 8}
+	result := make([]string, 10)
+	err = client.Call("Bean.Multiply", args, &result)
+	if err != nil {
+		log.Fatal("arith error:", err)
+	}
+	log.Println(result)
 }

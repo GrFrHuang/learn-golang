@@ -7,7 +7,6 @@ import (
 	"net/http"
 	"sync"
 	"time"
-	"strconv"
 )
 
 // Test golang frame work gin erupt simultaneously model
@@ -37,9 +36,7 @@ func init() {
 	Dpt = NewDispatcher()
 	HandlerCluster = make(map[string]map[string]func(ctx *gin.Context))
 
-	WorkerPool.RegisterWorker(Dpt, "GET", "/getsome", getsome)
 	WorkerPool.RegisterWorker(Dpt, "POST", "/postsome", Postsome)
-	WorkerPool.RegisterWorker(Dpt, "DELETE", "/deletesome", deletesome)
 }
 
 // New a request ctx(context) dispatcher.
@@ -120,25 +117,21 @@ func (d *Dispatcher) Run(w *Worker) {
 	}
 }
 
-func getsome(ctx *gin.Context) {
-	ctx.JSON(http.StatusOK, "geter say get !")
-}
+var wg = &sync.WaitGroup{}
+
 func Postsome(ctx *gin.Context) {
-	time.Sleep(time.Millisecond * 200)
-	role := &Role{
-		CpRoleId:   strconv.Itoa(time.Now().Nanosecond()),
-		UserId:     1,
-		GameId:     1,
-		RoleName:   "战士",
-		RoleGrade:  "79",
-		GameRegion: "五行山",
-	}
-	Ol.Beans <- role
+	time.Sleep(time.Millisecond * 500)
 	ctx.JSON(http.StatusOK, "poster say post !")
 
-}
-func deletesome(ctx *gin.Context) {
-	ctx.JSON(http.StatusOK, "optioner say options !")
+	//role := &Role{
+	//	CpRoleId:   strconv.Itoa(time.Now().Nanosecond()),
+	//	UserId:     1,
+	//	GameId:     1,
+	//	RoleName:   "战士",
+	//	RoleGrade:  "79",
+	//	GameRegion: "五行山",
+	//}
+	//Ol.Beans <- role
 }
 
 // Distinct listener api real handler.
