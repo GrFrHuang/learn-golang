@@ -526,9 +526,14 @@ func TestMy(t *testing.T) {
 	<-forever
 }
 
-// 方法区是静态区,是线程(协程)共享的
-// 每一个方法栈都是线程(协程)栈的栈帧
-// 并发时的堆对象操作
+// 通过对栈上的引用表量声明类型,不仅可以让该变量存储对应类型的堆地址,还可以让该变量去静态方法区获取到变量对应的类型的成员属性和成员函数.
+// 栈内存是在编译以前用代码事先分配(用完则该语言的虚拟机立即回收),堆内存是在程序运行时动态分配的(等待该语言的gc回收).
+// 程序计数器/PC寄存器--记录当前时间片内,当前线程(协程)的机器指令所执行到的行号.
+// 栈(先进后出)的存取速度比堆(链表结构,物理地址不需要连续,但是逻辑地址一定要连续)要快.
+// 基本数据类型的值也保存在栈上(int,float).
+// 方法区是静态区,是线程(协程)共享的.
+// 每一个方法栈都是线程(协程)栈的栈帧.
+// 并发时的堆对象操作.
 func TestBingfa(t *testing.T) {
 	var as = &As{
 		Name: "123",
@@ -542,7 +547,7 @@ func TestBingfa(t *testing.T) {
 
 	// 副本拷贝(在方法栈上重新分配堆的引用as5,再在堆上重新分配同一个对象)
 	var as4 = As{
-		Name:"nihao",
+		Name: "nihao",
 	}
 	var as5 = as4
 	for i := 0; i < 100; i++ {
@@ -552,7 +557,7 @@ func TestBingfa(t *testing.T) {
 			as3.Name = "mei"
 			as2.Name = "hee"
 			as.Name = "gg"
-			fmt.Println(as,as2,as3,as4)
+			fmt.Println(as, as2, as3, as4)
 		}()
 	}
 	time.Sleep(time.Second * 2)
