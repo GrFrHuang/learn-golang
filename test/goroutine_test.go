@@ -16,6 +16,7 @@ import (
 	"net/rpc"
 	"net"
 	"log"
+	"net/http"
 )
 
 var c chan bool
@@ -423,14 +424,43 @@ func TestCount(t *testing.T) {
 // 所以go就认为是死锁了。至少有一个协程要是在干活的
 // 对于死锁的检测非常麻烦，或许go就采用了这种比较简单粗暴的方法。算是一个小bug吧，但是关系不大
 
-// 测试主协程跑完，子协程是否继续异步执行
+// 目标: 测试主协程跑完，子协程是否继续异步执行
+// 结果: 顶层协程一旦执行完,其他协程也会被回收
 func TestAsyncGoroutine(t *testing.T) {
-	fmt.Println("ready return")
+	ch1 := make(chan string)
+	ch2 := make(chan string)
 	go func() {
-		f, err := os.Create("test.txt")
-		fmt.Println(f, err)
+		go func() {
+			for i := 0; i < 500; i++ {
+				rsp, _ := http.Get("http://127.0.0.1:18000/")
+				//f, err := os.Create("test.txt")
+				//bts, err := ioutil.ReadAll(rsp.Body)
+				fmt.Println(rsp)
+			}
+			time.Sleep(time.Millisecond * 5000)
+			ch2 <- "[底级]: 我跑完了"
+		}()
+		ch1 <- "[次级]: 你们跑,跟我无关"
 	}()
-	fmt.Println("here return")
+	fmt.Println(<-ch1)
+	fmt.Println(<-ch2)
+	time.Sleep(time.Millisecond * 10000)
+	fmt.Println("[顶级]: 你们跑完了,我才可以安全返回")
+}
+
+var m = make(map[int]int)
+
+func IndexHandler(w http.ResponseWriter, r *http.Request) {
+	//var count int
+	//count++
+	m[1] = 100
+	fmt.Println(m[1])
+	fmt.Fprintln(w, "hello world")
+}
+
+func TestHttp(t *testing.T) {
+	http.HandleFunc("/", IndexHandler)
+	http.ListenAndServe("127.0.0.1:18000", nil)
 }
 
 //RPC test
@@ -477,4 +507,53 @@ func TestRpc(t *testing.T) {
 		log.Fatal("arith error:", err)
 	}
 	log.Println(result)
+}
+
+func TestMy(t *testing.T) {
+	ch := make(chan string)
+	forever := make(chan string)
+	go func() {
+		go func() {
+			for {
+				fmt.Println("顶级协程不返回的话我就还在跑哦")
+				time.Sleep(time.Second * 1)
+			}
+		}()
+		time.Sleep(time.Second * 2)
+		ch <- "跑完了"
+	}()
+	fmt.Println("我知道: ", <-ch)
+	<-forever
+}
+
+// 方法区是静态区,是线程(协程)共享的
+// 每一个方法栈都是线程(协程)栈的栈帧
+// 并发时的堆对象操作
+func TestBingfa(t *testing.T) {
+	var as = &As{
+		Name: "123",
+	}
+	// as2与as指向的是同一个堆对象
+	var as2 = as
+	// as3已经被重新分配了内存地址
+	var as3 = &As{
+		Name: "123",
+	}
+
+	// 副本拷贝(在方法栈上重新分配堆的引用as5,再在堆上重新分配同一个对象)
+	var as4 = As{
+		Name:"nihao",
+	}
+	var as5 = as4
+	for i := 0; i < 100; i++ {
+		go func() {
+			as5.Name = "520"
+
+			as3.Name = "mei"
+			as2.Name = "hee"
+			as.Name = "gg"
+			fmt.Println(as,as2,as3,as4)
+		}()
+	}
+	time.Sleep(time.Second * 2)
 }

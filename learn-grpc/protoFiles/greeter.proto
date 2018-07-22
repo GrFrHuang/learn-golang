@@ -1,0 +1,39 @@
+syntax = "proto3";
+package grpc_file;
+
+service GreeterService {
+	rpc Hello(HelloRequest) returns (HelloResponse) {}
+	rpc InsertGreeter(InsertRequest) returns (InsertResponse) {}
+	rpc SelectGreeter(SelectRequest) returns (SelectResponse) {}
+}
+
+message HelloRequest {
+	string name = 1;
+}
+
+message HelloResponse {
+	string greeting = 2;
+}
+
+message Greeter {
+	int64 id = 1;
+	string name = 2;
+	string phone = 3;
+}
+
+message InsertRequest {
+    Greeter greeter = 1;
+}
+
+message InsertResponse {
+    Greeter greeter = 1;
+}
+
+message SelectRequest {
+	int64 id = 1;
+}
+
+message SelectResponse {
+	Greeter greeter = 1;
+}
+

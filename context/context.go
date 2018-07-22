@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"context"
 	"net/http"
+	"sync"
 )
 
 // Context 通常被译作 上下文 ，一般理解为程序单元的一个运行状态、现场、快照，而翻译中 上下 又很好地诠释了其本质，
@@ -64,46 +65,72 @@ func Add(ctx context.Context, a, b int) int {
 	return res
 }
 
+// 测试并发协程不安全情况
+// 读写共享元素,在并发情况下,则必然产生竞争,破坏共享元素数据, 所以要保护,要么加锁, 要么用channel将访问排队串行化
 func main() {
-	{
-		// 使用开放的 API 计算 a+b
-		a := 1
-		b := 2
-		fmt.Println("now is : ", time.Now())
-		timeout := 5 * time.Second
-		fmt.Println("The background context is : ", context.Background())
-		// WithTimeout 等价于 WithDeadline(parent, time.Now().Add(timeout))
-		ctx, _ := context.WithTimeout(context.Background(), timeout)
-		res := Add(ctx, 1, 2)
-		fmt.Println("child notify parent : ", <-ctx.Done())
-		fmt.Printf("Compute: %d+%d, result: %d\n", a, b, res)
-	}
-	{
-		// The WithCancel, WithDeadline, and WithTimeout functions take a Context (the
-		// parent) and return a derived Context (the child) and a CancelFunc. Calling
-		// the CancelFunc cancels the child and its children, removes the parent's
-		// reference to the child, and stops any associated timers.
-		_ctx := context.Background()
-		ctx := context.WithValue(_ctx, "GrFrHuang", "good")
-		fmt.Println("Found the key ", ctx.Value("GrFrHuang"))
-		fmt.Println("Not found ", ctx.Value("Baibaobao"))
-
-		time.Sleep(time.Second * 5)
-		fmt.Println("I am run here")
-	}
-	//{
-	//	// 手动取消
-	//	a := 1
-	//	b := 2
-	//	ctx, cancel := context.WithCancel(context.Background())
+	//c := make(map[string]int)
+	//for i := 0; i < 100; i++ {
 	//	go func() {
-	//		time.Sleep(2 * time.Second)
-	//		cancel() // 在调用处主动取消
+	//		for j := 0; j < 200; j++ {
+	//			c[fmt.Sprintf("%d", j)] = j+1
+	//		}
 	//	}()
-	//	res := Add(ctx, 1, 2)
-	//	fmt.Printf("Compute: %d+%d, result: %d\n", a, b, res)
 	//}
+	var l sync.Mutex
+	var a = 0
+	for i := 0; i < 1000; i++ {
+		if a < 500 {
+			l.Lock()
+			go func() {
+				a = a + 1
+				l.Unlock()
+			}()
+		}
+	}
+	time.Sleep(time.Second * 2)
+	fmt.Println(a)
 }
+
+//func main() {
+//	{
+//		// 使用开放的 API 计算 a+b
+//		a := 1
+//		b := 2
+//		fmt.Println("now is : ", time.Now())
+//		timeout := 5 * time.Second
+//		fmt.Println("The background context is : ", context.Background())
+//		// WithTimeout 等价于 WithDeadline(parent, time.Now().Add(timeout))
+//		ctx, _ := context.WithTimeout(context.Background(), timeout)
+//		res := Add(ctx, 1, 2)
+//		fmt.Println("child notify parent : ", <-ctx.Done())
+//		fmt.Printf("Compute: %d+%d, result: %d\n", a, b, res)
+//	}
+//	{
+//		// The WithCancel, WithDeadline, and WithTimeout functions take a Context (the
+//		// parent) and return a derived Context (the child) and a CancelFunc. Calling
+//		// the CancelFunc cancels the child and its children, removes the parent's
+//		// reference to the child, and stops any associated timers.
+//		_ctx := context.Background()
+//		ctx := context.WithValue(_ctx, "GrFrHuang", "good")
+//		fmt.Println("Found the key ", ctx.Value("GrFrHuang"))
+//		fmt.Println("Not found ", ctx.Value("Baibaobao"))
+//
+//		time.Sleep(time.Second * 5)
+//		fmt.Println("I am run here")
+//	}
+//	//{
+//	//	// 手动取消
+//	//	a := 1
+//	//	b := 2
+//	//	ctx, cancel := context.WithCancel(context.Background())
+//	//	go func() {
+//	//		time.Sleep(2 * time.Second)
+//	//		cancel() // 在调用处主动取消
+//	//	}()
+//	//	res := Add(ctx, 1, 2)
+//	//	fmt.Printf("Compute: %d+%d, result: %d\n", a, b, res)
+//	//}
+//}
 
 // 要么ctx被取消，要么request请求出错。
 func httpDo(ctx context.Context, req *http.Request, f func(*http.Response, error) error) error {

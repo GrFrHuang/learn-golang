@@ -3,7 +3,7 @@ package main
 import (
 	"fmt"
 	"time"
-	"learn-golang/learn-grpc/protoFiles"
+	"learn-golang/learn-grpc/protoFiles/pb"
 	"google.golang.org/grpc"
 	"net"
 )

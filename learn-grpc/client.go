@@ -4,7 +4,7 @@ import (
 	"strconv"
 	"os"
 	"google.golang.org/grpc"
-	"learn-golang/learn-grpc/protoFiles"
+	"learn-golang/learn-grpc/protoFiles/pb"
 	"golang.org/x/net/context"
 	"fmt"
 )
